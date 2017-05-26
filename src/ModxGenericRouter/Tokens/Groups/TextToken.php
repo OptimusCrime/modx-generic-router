@@ -6,34 +6,18 @@ class TextToken
 {
     private $expression;
 
-    public function setExpression(array $expression)
+    public function setExpression()
     {
-        $this->expression = $expression;
+        $this->expression = '';
+    }
+
+    public function addText($text)
+    {
+        $this->expression .= $text;
     }
 
     public function __toString()
     {
-        $output = '<';
-        foreach ($this->expression as $expression) {
-            $output .= (string) $expression;
-        }
-        $output .= '>';
-
-        return $output;
-    }
-
-    public function getPretty()
-    {
-        $output = '';
-        foreach ($this->expression as $expression) {
-            $output .= $expression->getValue();
-        }
-
-        return $output;
-    }
-
-    public function toArray()
-    {
-        return $this->getPretty();
+        return $this->expression;
     }
 }

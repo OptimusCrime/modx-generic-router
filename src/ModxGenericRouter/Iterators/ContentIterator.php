@@ -1,6 +1,6 @@
 <?php
 
-namespace OpimusCrime\ModxGenericRouter\Iterators;
+namespace ModxGenericRouter\Iterators;
 
 class ContentIterator
 {
@@ -8,17 +8,11 @@ class ContentIterator
     private $contentLength;
     private $index;
 
-    public function __construct()
-    {
-        $this->content = null;
-        $this->contentLength = null;
-        $this->index = 0;
-    }
-
-    public function setContent($content)
+    public function __construct($content)
     {
         $this->content = $content;
-        $this->contentLength = strlen($this->content);
+        $this->contentLength = mb_strlen($this->content);
+        $this->index = 0;
     }
 
     public function hasNext()
@@ -36,7 +30,7 @@ class ContentIterator
             throw new \Exception('Iterator beyond content');
         }
 
-        $current = substr($this->content, $this->index, 1);
+        $current = mb_substr($this->content, $this->index, 1);
 
         $this->index++;
 

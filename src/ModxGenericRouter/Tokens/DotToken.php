@@ -2,12 +2,12 @@
 
 namespace ModxGenericRouter\Tokens;
 
-class AsteriskToken extends BaseToken
+class DotToken extends BaseToken
 {
-    public static $TOKEN = ['*'];
+    public static $TOKEN = ['.'];
 
     public function __toString()
     {
-        return '<*>';
+        return '<.>';
     }
 }

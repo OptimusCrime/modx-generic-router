@@ -4,30 +4,24 @@ namespace ModxGenericRouter\Iterators;
 
 class TokenIterator
 {
-    private $content;
+    private $tokens;
     private $contentLength;
     private $index;
 
-    public function __construct()
+    public function __construct(array $tokens)
     {
-        $this->content = null;
-        $this->contentLength = null;
+        $this->tokens = $tokens;
+        $this->contentLength = count($this->tokens);
         $this->index = 0;
     }
 
-    public function setContent($content)
-    {
-        $this->content = $content;
-        $this->contentLength = count($this->content);
-    }
-
-    public function exists($offset = 0)
+    public function hasNext($offset = 0)
     {
         if ($this->contentLength === null) {
             throw new \Exception('Iterating without content');
         }
 
-        return $this->contentLength >= ($this->index + $offset - 1);
+        return $this->contentLength >= ($this->index + $offset + 1);
     }
 
     public function goForward($steps = 1)
@@ -44,14 +38,9 @@ class TokenIterator
         }
     }
 
-    public function getCurrent()
-    {
-        return $this->get();
-    }
-
     public function getNext()
     {
-       return $this->get(1);
+       return $this->get();
     }
 
     public function getPrevious()
@@ -61,10 +50,10 @@ class TokenIterator
 
     public function get($offset = 0)
     {
-        if (!$this->exists($offset)) {
+        if (!$this->hasNext($offset)) {
             return null;
         }
 
-        return $this->content[$this->index + $offset];
+        return $this->tokens[$this->index + $offset];
     }
 }

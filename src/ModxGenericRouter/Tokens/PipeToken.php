@@ -2,12 +2,12 @@
 
 namespace ModxGenericRouter\Tokens;
 
-class BacktickToken extends BaseToken
+class PipeToken extends BaseToken
 {
-    public static $TOKEN = ['`'];
+    public static $TOKEN = ['|'];
 
     public function __toString()
     {
-        return '<`>';
+        return '<|>';
     }
 }
