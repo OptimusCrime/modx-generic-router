@@ -15,4 +15,9 @@ class RegularToken extends BaseToken
     {
         return $this->value;
     }
+
+    public function isInteger()
+    {
+        return is_int($this->value);
+    }
 }
