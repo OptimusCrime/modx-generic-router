@@ -2,9 +2,12 @@
 
 include 'vendor/autoload.php';
 
-use ModxGenericRouter\ModxGenericRouter;
+use ModxGenericRouter\Expression;
 
-$expression = ModxGenericRouter::parse('[[~16]]/{page:\d}/[[16=alias|uri]]');
+echo '[[~16]]/{page:\d}/[[16=alias|uri]]' . PHP_EOL . PHP_EOL;
+
+$expression = new Expression('[[~16]]/{page:\d}/[[16=alias|uri]]');
+$expression->parse();
 
 echo (string) $expression;
 

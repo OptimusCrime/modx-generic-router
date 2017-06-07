@@ -3,7 +3,7 @@
 namespace ModxGenericRouter\Parser;
 
 use ModxGenericRouter\Parser\Tree\Node;
-use ModxGenericRouter\Tokens\Groups\TextToken;
+use ModxGenericRouter\DSN\Fragment;
 
 class Relax
 {
@@ -23,10 +23,11 @@ class Relax
             }
 
             if ($collection === null) {
-                $collection = new TextToken();
+                $collection = new Fragment();
+                $collection->setRaw(true);
             }
 
-            $collection->addText($child->getValue());
+            $collection->addContent($child->getValue());
         }
 
         $rootNode->setChildren($newChildren);

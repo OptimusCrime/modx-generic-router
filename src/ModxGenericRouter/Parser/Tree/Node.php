@@ -91,9 +91,9 @@ class Node
     public function __toString()
     {
         if (count($this->children) === 0) {
-            return '()';
+            return '';
         }
 
-        return '(' .  implode(' ', $this->children) . ')';
+        return implode(' ', $this->children);
     }
 }

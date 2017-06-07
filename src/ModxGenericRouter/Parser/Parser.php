@@ -2,9 +2,6 @@
 
 namespace ModxGenericRouter\Parser;
 
-use ModxGenericRouter\Parser\Concatenate;
-use ModxGenericRouter\Parser\Structure;
-
 
 class Parser
 {
