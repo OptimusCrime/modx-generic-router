@@ -21,6 +21,6 @@ class Parser
         Context::parse($tree);
 
         // Return the final tree
-        return $tree;
+        return $tree->getChildren();
     }
 }

@@ -2,13 +2,17 @@
 
 namespace ModxGenericRouter\Parser;
 
+use ModxGenericRouter\DSN\Field;
 use ModxGenericRouter\DSN\Fragment;
 use ModxGenericRouter\Parser\Tree\Node;
+use ModxGenericRouter\Tokens\BaseToken;
+use ModxGenericRouter\Tokens\DotToken;
 use ModxGenericRouter\Tokens\EqualSignToken;
+use ModxGenericRouter\Tokens\PipeToken;
 use ModxGenericRouter\Tokens\PlusSignToken;
 use ModxGenericRouter\Tokens\RegularToken;
 use ModxGenericRouter\Tokens\TildeToken;
-use Symfony\Component\Config\Definition\Exception\Exception;
+use ModxGenericRouter\Utilities\Formats;
 
 
 class Context
@@ -30,6 +34,8 @@ class Context
 
     private static function parseNode(Node $node)
     {
+        // TODO: Rewrite this section. Create instance and use index as attribute instead
+
         $fragment = new Fragment();
 
         // If we have no children, return the empty fragment
@@ -59,13 +65,20 @@ class Context
         $fragment->addAllContent(self::parseText($node, $currentIndex));
         $currentIndex += mb_strlen($fragment->getContent());
 
-        // TODO check if we have a depth indication. This is indicated by a TildeToken followed by one (or more)
-        // integers. 
+        // Check if we have a depth indicator. This should be a TildeToken followed by an integer
+        $fragment->setDepth(self::parseDepth($node, $currentIndex));
+        if ($fragment->getDepth() > 0) {
+            $currentIndex += 1 + strlen(((string) $fragment->getDepth()));
+        }
+
 
         $fields = self::parseFields($node, $currentIndex);
         if (count($fields) > 0) {
             $fragment->addAllFields($fields);
         }
+
+        // Cleanup / Sanitycheck
+        self::cleanupFragment($fragment);
 
         return $fragment;
     }
@@ -93,12 +106,17 @@ class Context
         }
     }
 
-    private static function parseText(Node $node, $index)
+    private static function parseText(
+        Node $node,
+        $index,
+        array $allowedTokens=[RegularToken::class],
+        array $regularConstraints=[]
+    )
     {
         $content = '';
         for ($i = $index; $i < count($node->getChildren()); $i++) {
             $currentChild = $node->getChild($i);
-            if (!($currentChild instanceof RegularToken)) {
+            if (self::mismatchToken($currentChild, $allowedTokens, $regularConstraints)) {
                 break;
             }
 
@@ -106,6 +124,65 @@ class Context
         }
 
         return $content;
+    }
+
+    private static function mismatchToken(BaseToken $token, array $allowedTokens, array $allowedConstraints)
+    {
+        foreach ($allowedTokens as $allowedToken) {
+            if ($token instanceof $allowedToken) {
+                // If the current Node is instance of RegularToken we may have supplied additional constraints that
+                // we should evaluate
+                if ($token instanceof RegularToken and count($allowedConstraints) > 0) {
+                    return self::mismatchRegularConstraints($token, $allowedConstraints);
+                }
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static function mismatchRegularConstraints(RegularToken $token, array $constraints)
+    {
+        foreach ($constraints as $constraint) {
+            switch($constraint) {
+                case RegularToken::INTEGER:
+                    if (!$token->isInteger()) {
+                        return false;
+                    }
+                    break;
+                case RegularToken::ALPHA:
+                    if (!$token->isAlpha()) {
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+                    break;
+            }
+        }
+
+        return true;
+    }
+
+    private static function parseDepth(Node $node, $index)
+    {
+        try {
+            if (!($node->getChild($index) instanceof TildeToken)) {
+                return null;
+            }
+        }
+        catch (\Exception $e) {
+            return null;
+        }
+
+        $depth = self::parseText($node, $index + 1, [RegularToken::class], [RegularToken::INTEGER]);
+        if (strlen($depth) == 0) {
+            return null;
+        }
+
+        return (int) $depth;
     }
 
     private static function parseFields(Node $node, $index)
@@ -132,16 +209,21 @@ class Context
         $currentIndex = $index;
         while ($currentIndex < count($node->getChildren())) {
             try {
-                $field = self::parseText($node, $currentIndex);
+                $field = self::parseText($node, $currentIndex, [RegularToken::class, DotToken::class]);
                 if (mb_strlen($field) === 0) {
                     break;
                 }
 
-                $fields[] = $field;
+                $fields[] = new Field($field);
 
+                $currentIndex += mb_strlen($fields[count($fields) - 1]);
 
-                // Move cursor the length of the last field added + 1 (the PipeToken)
-                $currentIndex += mb_strlen($fields[count($fields) - 1]) + 1;
+                // Check if we have a PipeToken
+                if ($node->hasChild($currentIndex) and !($node->getChild($currentIndex) instanceof PipeToken)) {
+                    break;
+                }
+
+                $currentIndex++;
             }
             catch (\Exception $e) {
                 break;
@@ -149,5 +231,25 @@ class Context
         }
 
         return $fields;
+    }
+
+    private static function cleanupFragment(Fragment $fragment)
+    {
+        // Check if we should convert to ID
+        self::cleanupFragmentId($fragment);
+    }
+
+    private static function cleanupFragmentId(Fragment $fragment)
+    {
+        if ($fragment->isSystemSetting()) {
+            return;
+        }
+
+        if (!Formats::isInteger($fragment->getContent())) {
+            return;
+        }
+
+        $fragment->setId(true);
+        $fragment->setContent((int) $fragment->getContent());
     }
 }

@@ -2,8 +2,13 @@
 
 namespace ModxGenericRouter\Tokens;
 
+use ModxGenericRouter\Utilities\Formats;
+
 class RegularToken extends BaseToken
 {
+    const INTEGER = 0;
+    const ALPHA = 1;
+
     public static $TOKEN = [null];
 
     public function __toString()
@@ -18,6 +23,11 @@ class RegularToken extends BaseToken
 
     public function isInteger()
     {
-        return is_int($this->value);
+        return Formats::isInteger($this->value);
+    }
+
+    public function isAlpha()
+    {
+        return Formats::isAlpha($this->value);
     }
 }

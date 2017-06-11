@@ -10,4 +10,9 @@ class DotToken extends BaseToken
     {
         return '<.>';
     }
+
+    public function getValue()
+    {
+        return '.';
+    }
 }

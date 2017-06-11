@@ -2,8 +2,11 @@
 
 namespace ModxGenericRouter;
 
+use ModxGenericRouter\DSN\Fragment;
 use ModxGenericRouter\Lexer\Lexer;
 use ModxGenericRouter\Parser\Parser;
+use ModxGenericRouter\Parser\Tree\Node;
+use ModxGenericRouter\Translation\Translator;
 
 
 class Expression
@@ -34,6 +37,7 @@ class Expression
     {
         $tokens = Lexer::tokenize($this->expression);
         $this->tree = Parser::parse($tokens);
+
         $this->validate();
     }
 
@@ -46,16 +50,65 @@ class Expression
 
     public function __toString()
     {
-        return (string) $this->tree;
+        return implode('', $this->tree);
     }
 
     public function dump()
     {
-        // TODO
+        $output = [];
+        foreach ($this->tree as $fragment) {
+            $output[] = $fragment->toArray();
+        }
+
+        $data = [
+            'version' => ModxGenericRouter::VERSION,
+            'tree' => $output
+        ];
+
+        return (ModxGenericRouter::TRANSLATOR)::encode($data);
     }
 
-    public function load()
+    public function load($string)
     {
-        // TODO
+        $data = (ModxGenericRouter::TRANSLATOR)::decode($string);
+
+        $this->tree = [];
+        foreach ($data as $item) {
+            $this->tree[] = Fragment::fromArray($item);
+        }
+    }
+
+    public function isDynamic()
+    {
+        foreach ($this->tree as $fragment) {
+            if (!$fragment->isRaw()) {
+                return True;
+            }
+        }
+
+        return false;
+    }
+
+    public function isNested()
+    {
+        foreach ($this->tree as $fragment) {
+            if ($fragment->getDepth() !== 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isDeterministic()
+    {
+        // The Expression is deterministic if we have no system settings
+        foreach ($this->tree as $fragment) {
+            if ($fragment->isSystemSetting()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

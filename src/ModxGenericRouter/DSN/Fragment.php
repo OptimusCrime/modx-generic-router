@@ -33,6 +33,16 @@ class Fragment
         return $this->url;
     }
 
+    public function setId($flag)
+    {
+        $this->id = $flag;
+    }
+
+    public function isId()
+    {
+        return $this->id;
+    }
+
     public function setSystemSetting($flag)
     {
         $this->systemSetting = $flag;
@@ -53,6 +63,11 @@ class Fragment
         return $this->raw;
     }
 
+    public function setContent($content)
+    {
+        $this->content = $content;
+    }
+
     public function addContent($c)
     {
         $this->content .= $c;
@@ -60,12 +75,26 @@ class Fragment
 
     public function addAllContent($content)
     {
-        $this->content = $content;
+        $this->setContent($content);
     }
 
     public function getContent()
     {
         return $this->content;
+    }
+
+    public function setDepth($depth)
+    {
+        if (!is_integer($depth)) {
+            return;
+        }
+
+        $this->depth = $depth;
+    }
+
+    public function getDepth()
+    {
+        return $this->depth;
     }
 
     public function addAllFields(array $fields)
@@ -76,6 +105,44 @@ class Fragment
     public function getFields()
     {
         return $this->fields;
+    }
+
+    public function toArray()
+    {
+        $fields = null;
+        if (count($this->fields) > 0) {
+            $fields = [];
+            foreach ($this->fields as $field) {
+                $fields[] = $field->toArray();
+            }
+        }
+
+        return [
+            'raw' => $this->raw,
+            'url' => $this->url,
+            'id' => $this->id,
+            'systemSetting' => $this->systemSetting,
+            'depth' => $this->depth,
+            'fields' => $fields,
+            'content' => $this->content
+        ];
+    }
+
+    public static function fromArray(array $data)
+    {
+        $fragment = new Fragment();
+        $fragment->setRaw($data['raw']);
+        $fragment->setUrl($data['url']);
+        $fragment->setId($data['id']);
+        $fragment->setSystemSetting($data['systemSetting']);
+        $fragment->setDepth($data['depth']);
+        $fragment->addAllContent($data['content']);
+
+        if (count($data['fields']) > 0) {
+            $fragment->addAllFields(Field::fromArrays($data['fields']));
+        }
+
+        return $fragment;
     }
 
     public function __toString()
@@ -105,6 +172,4 @@ class Fragment
 
         return $output . ']]';
     }
-
-
 }
