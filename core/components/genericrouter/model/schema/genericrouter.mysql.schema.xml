@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model package="genericrouter" baseClass="xPDOSimpleObject" platform="mysql" defaultEngine="MyISAM" version="1.1">
+    <object class="Routes" table="genericrouter_routes" extends="xPDOSimpleObject">
+        <field key="expression" dbtype="varchar" precision="170" phptype="string" null="true" default="null" />
+        <field key="type" dbtype="int" precision="2" phptype="integer" null="false" default="0" />
+        <field key="target" dbtype="int" precision="10" phptype="integer" null="true" default="null" />
+        <field key="name" dbtype="varchar" precision="80" phptype="string" null="false" />
+        <field key="priority" dbtype="int" precision="3" phptype="integer" null="false" default="999" />
+        <field key="enabled" dbtype="int" precision="1" phptype="boolean" null="true" default="1" />
+        <field key="representation" dbtype="text" phptype="string" null="true" default="" />
+        <field key="mode" dbtype="int" precision="1" phptype="boolean" null="false" default="0" />
+    </object>
+</model>
