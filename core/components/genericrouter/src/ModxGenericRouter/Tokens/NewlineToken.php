@@ -6,12 +6,13 @@ class NewlineToken extends BaseToken
 {
     public static $TOKEN = ["\n", "\r\n", PHP_EOL];
 
+    public function __construct()
+    {
+        $this->value = PHP_EOL;
+    }
+
     public function __toString()
     {
-        if ($this->length !== null and $this->length > 1) {
-            return '<newline*' . $this->length . '>';
-        }
-
         return '<newline>';
     }
 

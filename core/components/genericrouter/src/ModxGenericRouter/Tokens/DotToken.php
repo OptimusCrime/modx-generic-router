@@ -6,13 +6,8 @@ class DotToken extends BaseToken
 {
     public static $TOKEN = ['.'];
 
-    public function __toString()
+    public function __construct()
     {
-        return '<.>';
-    }
-
-    public function getValue()
-    {
-        return '.';
+        $this->value = '.';
     }
 }

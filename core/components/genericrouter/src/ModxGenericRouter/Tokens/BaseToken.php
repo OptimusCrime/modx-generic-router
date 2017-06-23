@@ -6,7 +6,6 @@ abstract class BaseToken
 {
     protected $children;
     protected $value;
-    protected $length;
 
     public static $TOKEN = [''];
 
@@ -20,13 +19,13 @@ abstract class BaseToken
         return $this->value;
     }
 
-    public function setLength($length)
-    {
-        $this->length = $length;
-    }
-
     public function toArray()
     {
         return self::$TOKEN[0];
+    }
+
+    public function __toString()
+    {
+        return '<' . $this->value . '>';
     }
 }

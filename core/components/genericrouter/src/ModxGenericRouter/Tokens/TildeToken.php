@@ -6,8 +6,8 @@ class TildeToken extends BaseToken
 {
     public static $TOKEN = ['~'];
 
-    public function __toString()
+    public function __construct()
     {
-        return '<~>';
+        $this->value = '~';
     }
 }

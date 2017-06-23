@@ -2,7 +2,10 @@
 
 require_once dirname(dirname(__DIR__)) . '/vendor/autoload.php';
 
-use \ModxGenericRouter\Expression;
+use ModxGenericRouter\Expression;
+
+use FastRoute\RouteCollector;
+use FastRoute\Dispatcher;
 
 class GenericRouter {
 
@@ -55,16 +58,39 @@ class GenericRouter {
             return;
         }
 
+        $dispatcher = $this->buildDispatcher();
+
+        $routeInfo = $dispatcher->dispatch($_SERVER['REQUEST_METHOD'], $requestAlias);
+        switch ($routeInfo[0]) {
+            case Dispatcher::FOUND:
+                // Set GET variables
+                if (isset($routeInfo[2]) and count($routeInfo[2]) > 0) {
+                    foreach ($routeInfo[2] as $k => $v) {
+                        $_GET[$k] = $v;
+                    }
+                }
+
+                // Send forward
+                $this->modx->sendForward($routeInfo[1]);
+                exit();
+
+                break;
+            default:
+                return null;
+                break;
+        }
+    }
+
+    private function buildDispatcher()
+    {
         $routes = $this->getRoutes();
 
-        foreach ($routes as $route) {
-            $cleanRoute = $this->cleanAlias($route['expression']);
-            if ($requestAlias === substr($cleanRoute, 1)) {
-                $this->modx->sendForward($route['target']);
-                die();
+        return FastRoute\simpleDispatcher(function(RouteCollector $r) use ($routes) {
+            foreach ($routes as $route) {
+                $cleanRoute = $this->cleanAlias($route['expression']);
+                $r->addRoute('GET', $cleanRoute, $route['target']);
             }
-        }
-
+        });
     }
 
     private function getRoutes()
@@ -136,7 +162,7 @@ class GenericRouter {
             return null;
         }
 
-        return $this->cleanAlias($_REQUEST[$this->modx->getOption('request_param_alias',null,'q')]);
+        return '/' . $this->cleanAlias($_REQUEST[$this->modx->getOption('request_param_alias',null,'q')]);
     }
 
     private function cleanAlias($alias)

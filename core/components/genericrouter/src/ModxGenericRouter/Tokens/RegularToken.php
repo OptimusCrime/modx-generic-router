@@ -11,9 +11,9 @@ class RegularToken extends BaseToken
 
     public static $TOKEN = [null];
 
-    public function __toString()
+    public function __construct()
     {
-        return '<' . $this->value . '>';
+        $this->value = '';
     }
 
     public function getPretty()
