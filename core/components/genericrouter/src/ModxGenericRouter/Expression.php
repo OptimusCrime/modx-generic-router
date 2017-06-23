@@ -78,6 +78,11 @@ class Expression
         }
     }
 
+    public function getTree()
+    {
+        return $this->tree;
+    }
+
     public function isDynamic()
     {
         foreach ($this->tree as $fragment) {

@@ -12,7 +12,7 @@ class Node
 
     public function __construct()
     {
-        $this->rootode = false;
+        $this->rootNode = false;
         $this->parent = null;
         $this->children = [];
         $this->closed = false;

@@ -30,6 +30,10 @@ class Relax
             $collection->addContent($child->getValue());
         }
 
+        if ($collection !== null) {
+            $newChildren[] = $collection;
+        }
+
         $rootNode->setChildren($newChildren);
     }
 }

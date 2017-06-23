@@ -14,11 +14,12 @@ class GenericRouter {
 
     private $modx;
     private $config;
+    private $request;
 
     function __construct(\modX &$modx, array $config = [])
     {
-
         $this->modx =& $modx;
+        $this->request = null;
 
         $basePath = $this->modx->getOption(
             'genericrouter.core_path',
@@ -54,7 +55,74 @@ class GenericRouter {
             return;
         }
 
-        
+        $routes = $this->getRoutes();
+
+        foreach ($routes as $route) {
+            $cleanRoute = $this->cleanAlias($route['expression']);
+            if ($requestAlias === substr($cleanRoute, 1)) {
+                $this->modx->sendForward($route['target']);
+                die();
+            }
+        }
+
+    }
+
+    private function getRoutes()
+    {
+        $routes = [];
+        $c = $this->modx->newQuery('Routes');
+        $c->where([
+            'enabled' => 1,
+            # Add mode
+        ]);
+        $c->sortby('priority', 'DESC');
+        $collection = $this->modx->getCollection('Routes', $c);
+
+        foreach ($collection as $v) {
+            if ($v->get('expression') === null or $v->get('target') === null) {
+                continue;
+            }
+
+            // Turn into Expression
+            $expression = new Expression($v->get('expression'));
+
+            $representation = $v->get('representation');
+            if ($representation !== null) {
+                $expression->load($representation);
+            }
+            else {
+                $expression->parse();
+            }
+
+            $expressionValues = $this->expandExpression($expression);
+
+            if ($expressionValues === null) {
+                continue;
+            }
+
+            if (is_string($expressionValues)) {
+                array_push($routes, [
+                    'expression' => $expressionValues,
+                    'target' => $v->get('target')
+                ]);
+            }
+        }
+
+        return $routes;
+    }
+
+    private function expandExpression(Expression $expression)
+    {
+        $output = '';
+        foreach ($expression->getTree() as $v) {
+            if ($v->isRaw()) {
+                $output .= $v->getContent();
+            }
+
+            // TODO link, system setting, everything else
+        }
+
+        return $output;
     }
 
     private function cleanRequestAlias()
@@ -68,12 +136,19 @@ class GenericRouter {
             return null;
         }
 
-        // We need an instance of modRequest to use the cleaning method...
-        $responseClass = $this->modx->getOption('modRequest.class', $this->modx->config, 'modRequest');
-        $className = $this->modx->loadClass($responseClass, '', !empty(''), true);
-        $request = new $className($this->modx);
+        return $this->cleanAlias($_REQUEST[$this->modx->getOption('request_param_alias',null,'q')]);
+    }
 
-        return $request->_cleanResourceIdentifier($_REQUEST[$this->modx->getOption('request_param_alias',null,'q')]);
+    private function cleanAlias($alias)
+    {
+        if ($this->request === null) {
+            // We need an instance of modRequest to use the cleaning method...
+            $responseClass = $this->modx->getOption('modRequest.class', $this->modx->config, 'modRequest');
+            $className = $this->modx->loadClass($responseClass, '', !empty(''), true);
+            $this->request = new $className($this->modx);
+        }
+
+        return $this->request->_cleanResourceIdentifier($alias);
     }
 
     public function getConfig($key = null)
