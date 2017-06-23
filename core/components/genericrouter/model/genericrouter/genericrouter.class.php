@@ -3,6 +3,7 @@
 require_once dirname(dirname(__DIR__)) . '/vendor/autoload.php';
 
 use ModxGenericRouter\Expression;
+use ModxGenericRouter\DSN\Fragment;
 
 use FastRoute\RouteCollector;
 use FastRoute\Dispatcher;
@@ -88,6 +89,10 @@ class GenericRouter {
         return FastRoute\simpleDispatcher(function(RouteCollector $r) use ($routes) {
             foreach ($routes as $route) {
                 $cleanRoute = $this->cleanAlias($route['expression']);
+
+                // DEBUG
+                $this->modx->log(1, 'Adding GET route for ' . $cleanRoute);
+
                 $r->addRoute('GET', $cleanRoute, $route['target']);
             }
         });
@@ -144,11 +149,29 @@ class GenericRouter {
             if ($v->isRaw()) {
                 $output .= $v->getContent();
             }
-
-            // TODO link, system setting, everything else
+            elseif ($v->isUrl()) {
+                $output .= $this->handleUrl($v);
+            }
         }
 
         return $output;
+    }
+
+    private function handleUrl(Fragment $fragment)
+    {
+        if ($fragment->isSystemSetting()) {
+            // TODO
+        }
+
+        if ($fragment->getDepth() > 0) {
+            // TODO
+        }
+
+        if (count($fragment->getFields()) > 0) {
+            // TODO
+        }
+
+        return $this->modx->makeUrl($fragment->getContent());
     }
 
     private function cleanRequestAlias()
