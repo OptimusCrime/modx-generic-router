@@ -1,6 +1,5 @@
 <?php
-
-namespace ModxGenericRouter\DSN;
+namespace OptimusCrime\ModxGenericRouter\DSN;
 
 class Fragment
 {

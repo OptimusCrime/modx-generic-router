@@ -1,25 +1,28 @@
 <?php
+namespace OptimusCrime\ModxGenericRouter;
 
-namespace ModxGenericRouter;
-
-use ModxGenericRouter\DSN\Fragment;
-use ModxGenericRouter\Lexer\Lexer;
-use ModxGenericRouter\Parser\Parser;
-use ModxGenericRouter\Parser\Tree\Node;
-use ModxGenericRouter\Translation\Translator;
-
+use Exception;
+use OptimusCrime\ModxGenericRouter\DSN\Fragment;
+use OptimusCrime\ModxGenericRouter\Lexer\Lexer;
+use OptimusCrime\ModxGenericRouter\Parser\Parser;
 
 class Expression
 {
-    private $expression;
-    private $valid;
-    private $errors;
-    private $warnings;
-    private $tree;
+    private Parser $parser;
+
+    private string $expression;
+    private bool $valid;
+    private array $errors;
+    private array $warnings;
+    private ?array $tree;
 
     public function __construct($expression)
     {
+        $this->parser = new Parser();
+
         $this->expression = $expression;
+
+        $this->valid = true;
 
         $this->valid = false;
         $this->errors = [];
@@ -28,17 +31,27 @@ class Expression
         $this->tree = null;
     }
 
-    public function isValid()
+    public function isValid(): bool
     {
         return $this->valid;
     }
 
-    public function parse()
+    /**
+     * @throws Exception
+     */
+    public function parse(): void
     {
-        $tokens = Lexer::tokenize($this->expression);
-        $this->tree = Parser::parse($tokens);
+        var_dump($this->expression);
+        $lexer = new Lexer($this->expression);
+        $lexer->tokenize();
+        $tokens = $lexer->getTokens();
+        var_dump($this->expression);
+        var_dump($tokens);
+        die();
+        //$this->parser->run($tokens);
+        //$this->tree = $this->parser->run($tokens);
 
-        $this->validate();
+        //$this->validate();
     }
 
     private function validate()

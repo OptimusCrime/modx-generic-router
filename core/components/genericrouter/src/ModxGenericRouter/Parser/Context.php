@@ -1,38 +1,84 @@
 <?php
+namespace OptimusCrime\ModxGenericRouter\Parser;
 
-namespace ModxGenericRouter\Parser;
-
-use ModxGenericRouter\DSN\Field;
-use ModxGenericRouter\DSN\Fragment;
-use ModxGenericRouter\Parser\Tree\Node;
-use ModxGenericRouter\Tokens\BaseToken;
-use ModxGenericRouter\Tokens\DotToken;
-use ModxGenericRouter\Tokens\EqualSignToken;
-use ModxGenericRouter\Tokens\PipeToken;
-use ModxGenericRouter\Tokens\PlusSignToken;
-use ModxGenericRouter\Tokens\RegularToken;
-use ModxGenericRouter\Tokens\TildeToken;
-use ModxGenericRouter\Utilities\Formats;
+use Exception;
+use OptimusCrime\ModxGenericRouter\DSN\Field;
+use OptimusCrime\ModxGenericRouter\DSN\Fragment;
+use OptimusCrime\ModxGenericRouter\Iterators\GenericArrayIterator;
+use OptimusCrime\ModxGenericRouter\Parser\DSN\SystemSetting;
+use OptimusCrime\ModxGenericRouter\Parser\DSN\UnParsedContext;
+use OptimusCrime\ModxGenericRouter\Parser\Tree\ContextNode;
+use OptimusCrime\ModxGenericRouter\Parser\Tree\Node;
+use OptimusCrime\ModxGenericRouter\Tokens\BaseToken;
+use OptimusCrime\ModxGenericRouter\Tokens\EqualSign;
+use OptimusCrime\ModxGenericRouter\Tokens\Pipe;
+use OptimusCrime\ModxGenericRouter\Tokens\PlusSign;
+use OptimusCrime\ModxGenericRouter\Tokens\RegularToken;
+use OptimusCrime\ModxGenericRouter\Tokens\Tilde;
+use OptimusCrime\ModxGenericRouter\Utilities\Formats;
 
 
 class Context
 {
-    public static function parse(Node $rootNode)
+    private ContextNode $rootNode;
+    private bool $dirty;
+
+    public function __construct(ContextNode $rootNode)
     {
+        $this->rootNode = $rootNode;
+        $this->dirty = false;
+    }
+
+    public function startParse(): bool
+    {
+        $this->dirty = false;
+
+        $this->parse($this->rootNode);
+
+        return $this->dirty;
+    }
+
+    /**
+     * @param ContextNode $node
+     * @throws Exception
+     */
+    private function parse(ContextNode $node): ContextNode
+    {
+        $iterator = new GenericArrayIterator($node->getChildren());
         $newChildren = [];
-        foreach ($rootNode->getChildren() as $child) {
-            if ($child instanceof Fragment) {
-                $newChildren[] = $child;
+        while ($iterator->hasNext()) {
+            $currentNode = $iterator->getCurrent();
+
+            // Not two more nodes, break early in this iteration
+            if (!$iterator->hasNext(1)) {
+                $iterator->goForwards();
                 continue;
             }
 
-            $newChildren[] = self::parseNode($child);
+            $nextNode = $iterator->get(1);
+
+            if ($currentNode instanceof UnParsedContext && $nextNode instanceof UnParsedContext) {
+                $currentToken = $currentNode->getToken();
+                $nextToken = $nextNode->getToken();
+
+                // Handle ++ -> SystemSetting
+                if ($currentToken instanceof PlusSign && $nextToken instanceof PlusSign) {
+                    $newChildren[] = new SystemSetting();
+                    $iterator->goForwards(2);
+                    continue;
+                }
+
+                // Handle ~ -> Link
+
+            }
         }
 
-        $rootNode->setChildren($newChildren);
+        $node->setChildren($newChildren);
+
+        return $node;
     }
 
-    private static function parseNode(Node $node)
+    private function parseNode(Node $node)
     {
         // TODO: Rewrite this section. Create instance and use index as attribute instead
 
@@ -45,7 +91,7 @@ class Context
 
         $currentIndex = 0;
 
-        // Check if the current fragment is an URL. This is indicated by a TildeToken as the first child.
+        // Check if the current fragment is an URL. This is indicated by a Tilde as the first child.
         $fragment->setUrl(self::parseIsUrl($node, $currentIndex));
         if ($fragment->isUrl()) {
             $currentIndex++;
@@ -59,13 +105,13 @@ class Context
             $currentIndex += 2;
         }
 
-        // Add the content. This is whatever follows either the two PlusSignTokens or the TildeToken. This content is
+        // Add the content. This is whatever follows either the two PlusSignTokens or the Tilde. This content is
         // either an integer if the fragment is an URL or it may be a system setting following the MODX system setting
         // validator rules.
         $fragment->addAllContent(self::parseText($node, $currentIndex));
         $currentIndex += mb_strlen($fragment->getContent());
 
-        // Check if we have a depth indicator. This should be a TildeToken followed by an integer
+        // Check if we have a depth indicator. This should be a Tilde followed by an integer
         $fragment->setDepth(self::parseDepth($node, $currentIndex));
         if ($fragment->getDepth() > 0) {
             $currentIndex += 1 + strlen(((string) $fragment->getDepth()));
@@ -86,9 +132,9 @@ class Context
     private static function parseIsUrl(Node $node, $index)
     {
         try {
-            return $node->getChild($index) instanceof TildeToken;
+            return $node->getChild($index) instanceof Tilde;
         }
-        catch (\Exception $e) {
+        catch (Exception $e) {
             return false;
         }
     }
@@ -99,9 +145,9 @@ class Context
             $firstChild = $node->getChild($index);
             $secondChild = $node->getChild($index + 1);
 
-            return $firstChild instanceof PlusSignToken and $secondChild instanceof PlusSignToken;
+            return $firstChild instanceof PlusSign and $secondChild instanceof PlusSign;
         }
-        catch (\Exception $e) {
+        catch (Exception $e) {
             return false;
         }
     }
@@ -145,6 +191,8 @@ class Context
 
     private static function mismatchRegularConstraints(RegularToken $token, array $constraints)
     {
+        return false;
+        /*
         foreach ($constraints as $constraint) {
             switch($constraint) {
                 case RegularToken::INTEGER:
@@ -162,6 +210,7 @@ class Context
                     break;
             }
         }
+        */
 
         return true;
     }
@@ -169,11 +218,11 @@ class Context
     private static function parseDepth(Node $node, $index)
     {
         try {
-            if (!($node->getChild($index) instanceof TildeToken)) {
+            if (!($node->getChild($index) instanceof Tilde)) {
                 return null;
             }
         }
-        catch (\Exception $e) {
+        catch (Exception $e) {
             return null;
         }
 
@@ -197,9 +246,9 @@ class Context
     private static function parseHasFields(Node $node, $index)
     {
         try {
-            return $node->getChild($index) instanceof EqualSignToken;
+            return $node->getChild($index) instanceof EqualSign;
         }
-        catch(\Exception $e) {
+        catch(Exception $e) {
             return false;
         }
     }
@@ -209,7 +258,7 @@ class Context
         $currentIndex = $index;
         while ($currentIndex < count($node->getChildren())) {
             try {
-                $field = self::parseText($node, $currentIndex, [RegularToken::class, DotToken::class]);
+                $field = self::parseText($node, $currentIndex, [RegularToken::class, Dot::class]);
                 if (mb_strlen($field) === 0) {
                     break;
                 }
@@ -218,14 +267,14 @@ class Context
 
                 $currentIndex += mb_strlen($fields[count($fields) - 1]);
 
-                // Check if we have a PipeToken
-                if ($node->hasChild($currentIndex) and !($node->getChild($currentIndex) instanceof PipeToken)) {
+                // Check if we have a Pipe
+                if ($node->hasChild($currentIndex) and !($node->getChild($currentIndex) instanceof Pipe)) {
                     break;
                 }
 
                 $currentIndex++;
             }
-            catch (\Exception $e) {
+            catch (Exception $e) {
                 break;
             }
         }

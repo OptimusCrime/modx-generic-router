@@ -1,39 +1,105 @@
 <?php
+namespace OptimusCrime\ModxGenericRouter\Iterators;
 
-namespace ModxGenericRouter\Iterators;
+use Exception;
 
 class ContentIterator
 {
-    private $content;
-    private $contentLength;
-    private $index;
+    private array $tokens;
+    private int $contentLength;
+    private int $index;
 
-    public function __construct($content)
+    public function __construct(string $content)
     {
-        $this->content = $content;
-        $this->contentLength = mb_strlen($this->content);
+        // TODO: Reuse array iterator?
+        $this->tokens = str_split($content);
+        $this->contentLength = count($this->tokens) - 1;
         $this->index = 0;
     }
 
-    public function hasNext()
+    /**
+     * @param int $offset
+     * @return bool
+     * @throws Exception
+     */
+    public function exists(int $offset = 0): bool
     {
         if ($this->contentLength === null) {
-            throw new \Exception('Iterating without content');
+            throw new Exception('Iterating without content');
         }
 
-        return $this->contentLength >= $this->index;
+        return $this->contentLength >= ($this->index + $offset);
     }
 
-    public function getNext()
+    /**
+     * @param int $offset
+     * @return bool
+     * @throws Exception
+     */
+    public function hasNext(int $offset = 0): bool
     {
-        if (!$this->hasNext()) {
-            throw new \Exception('Iterator beyond content');
+        return $this->exists($offset + 1);
+    }
+
+    /**
+     * @param int $offset
+     * @return string
+     * @throws Exception
+     */
+    public function peek(int $offset = 0, int $length = 1): string
+    {
+        if (!$this->exists($offset)) {
+            return PHP_EOL;
         }
 
-        $current = mb_substr($this->content, $this->index, 1);
+        if ($length < 0) {
+            throw new Exception('Invalid $length passed to peek. Was: ' . $length);
+        }
 
-        $this->index++;
+        if ($length === 1) {
+            return $this->peekOne($offset);
+        }
 
-        return $current;
+        $output = [];
+        for ($i = 0; $i < $length; $i++) {
+            $output[] = $this->peekOne($offset + $i);
+        }
+
+        return implode('', $output);
+    }
+
+    private function peekOne(int $offset = 0) {
+        return $this->tokens[$this->index + $offset];
+    }
+
+    /**
+     * @param int $offset
+     * @return string
+     * @throws Exception
+     */
+    public function consume(int $offset = 1): string
+    {
+        if ($offset <= 0) {
+            throw new Exception('Invalid $offset passed to consume. Was: ' . $offset);
+        }
+
+        $output = [];
+        $limit = $this->index + $offset;
+        while ($this->index < $limit) {
+            $output[] = $this->tokens[$this->index];
+            $this->index += 1;
+        }
+
+        return implode('', $output);
+    }
+
+    public function consumeNoReturn(int $offset = 1): void
+    {
+        $this->index += $offset;
+    }
+
+    public function getCursorPosition(): int
+    {
+        return $this->index;
     }
 }

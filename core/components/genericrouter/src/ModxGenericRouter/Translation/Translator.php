@@ -1,8 +1,7 @@
 <?php
+namespace OptimusCrime\ModxGenericRouter\Translation;
 
-namespace ModxGenericRouter\Translation;
-
-use ModxGenericRouter\ModxGenericRouter;
+use OptimusCrime\ModxGenericRouter\ModxGenericRouter;
 
 class Translator
 {
